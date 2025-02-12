@@ -1,62 +1,73 @@
 package templates
 
 templ selectionCard(text string, icon string) {
-<button ws-send={"{ 'choice': '" + text + "' , 'playerId': '123' }"} 
-	@click={ "choice = (choice == '" + text + "') ? '' : '" + text + "'" } 
-	type="button"
-	class="flex flex-col justify-between p-6 w-50 bg-neutral-950 font-bold border-2 rounded-sm shadow-md transition cursor-pointer hover:shadow-neutral-300/50 hover:border-neutral-300"
-	:class={ "(choice=='" + text + "') ? 'shadow-rps-yellow-300/50 border-rps-yellow-300' : ''" }>
-	<span class="text-3xl uppercase mb-3">
-		{ text }
-	</span>
-</button>
+	<button
+		type="button"
+		@click={ "choice = (choice == '" + text + "') ? '' : '" + text + "'" }
+		class="flex flex-col justify-between p-6 w-50 bg-neutral-950 font-bold border-2 rounded-sm shadow-md transition cursor-pointer hover:shadow-neutral-300/50 hover:border-neutral-300"
+		:class={ "(choice=='" + text + "') ? 'shadow-rps-yellow-300/50 border-rps-yellow-300' : ''" }
+	>
+		<span class="text-3xl uppercase mb-3">
+			{ text }
+		</span>
+	</button>
 }
 
-templ ScoreBoard() {
-<h2>Score</h2>
-<div class="flex flex justify-between items-center gap-5">
-	<p>You: 0</p>
-	<h3>{ "10" }</h3>
-	<p>Opponent: 0</p>
-</div>
+templ Scoreboard(p1Score string, p2Score string, timer string) {
+	<div id="scoreboard" class="flex flex justify-between items-center gap-5">
+		<p>You: { p1Score }</p>
+		<h3 id="gameTimer">{ timer }</h3>
+		<p>Opponent: { p2Score }</p>
+	</div>
 }
 
 templ SelectionScreen() {
-<form ws-send x-data="{ choice: '' }"
-	class="flex flex-col gap-8 items-center bg-neutral-900 rounded-md p-10 inset-ring-3">
-	<div class="grid grid-cols-3 gap-10 w-full max-w-4xl">
-		@selectionCard("rock", "")
-		@selectionCard("paper", "")
-		@selectionCard("scissors", "")
+	@Scoreboard("0", "0", "0")
+	<form
+		ws-send
+		x-data="{ choice: '' }"
+		class="flex flex-col gap-8 items-center bg-neutral-900 rounded-md p-10 inset-ring-3"
+	>
+		<div class="grid grid-cols-3 gap-10 w-full max-w-4xl">
+			@selectionCard("rock", "")
+			@selectionCard("paper", "")
+			@selectionCard("scissors", "")
+		</div>
+		<input type="hidden" name="choice" x-model="choice"/>
+		<input type="hidden" name="playerId" value="player1"/>
+		<button
+			type="submit"
+			:disabled="choice == ''"
+			class="w-1/4 p-4 rounded-sm bg-rps-blue-500 text-rps-white-100 shadow-lg hover:bg-rps-blue-400 transition cursor-pointer disabled:bg-neutral-700"
+		>
+			Confirm
+		</button>
+	</form>
+}
+
+templ ResultScreen(playerOneMove, playerTwoMove, winner string) {
+	<div hx-swap-oob="innerHTML:#gameScreen">
+		@Scoreboard("0", "0", "0")
+		<h1>ResultScreen</h1>
+		<h2>{ playerOneMove }</h2>
+		<h2>{ playerTwoMove }</h2>
+		<h2>{ winner }</h2>
 	</div>
-	<input type="hidden" name="choice" x-model="choice" />
-	<button type="submit" :disabled="choice == ''"
-		class="w-1/4 p-4 rounded-sm bg-rps-blue-500 text-rps-white-100 shadow-lg hover:bg-rps-blue-400 transition cursor-pointer disabled:bg-neutral-700">
-		Confirm
-	</button>
-</form>
 }
 
-templ ResultScreen() {
-<section class="">
-	<h1>ResultScreen</h1>
-	@ScoreBoard()
-</section>
-}
-
-templ EndScreen() {
-<section class="">
-	<h1>EndScreen</h1>
-	<a href="/">Exit</a>
-</section>
+templ EndScreen(winner string) {
+	<div hx-swap-oob="innerHTML:#gameScreen">
+		<h1>EndScreen</h1>
+		<h1>Winner: { winner }</h1>
+		<a href="/">Exit</a>
+	</div>
 }
 
 templ Game(id string) {
-<section hx-ext="ws" ws-connect={ "/game/" + id } class="">
-	<h1>Game</h1>
-	<div id="game" class="flex flex-col gap-8 items-center bg-neutral-900 rounded-md p-10 inset-ring-3">
-		@ScoreBoard()
-		@SelectionScreen()
-	</div>
-</section>
+	<section id="game" hx-ext="ws" ws-connect={ "/game/" + id } class="">
+		<h1>Game</h1>
+		<div id="gameScreen" class="flex flex-col gap-8 items-center bg-neutral-900 rounded-md p-10 inset-ring-3">
+			@SelectionScreen()
+		</div>
+	</section>
 }

@@ -116,6 +116,7 @@ templ GameMenu() {
 	<input type="hidden" name="bestOf" x-model="bestOf" />
 	<button hx-post="/play" hx-target="#main" hx-include="[name='bestOf']" :disabled="bestOf == 0"
 		class="w-1/4 p-4 rounded-sm bg-rps-blue-500 text-rps-white-100 shadow-lg hover:bg-rps-blue-400 transition cursor-pointer disabled:bg-neutral-700"
-		x-text="bestOf == '0' ? 'Select a mode' : 'Play'"></button>
+		x-text="bestOf == '0' ? 'Select a mode' : 'Play'">
+	</button>
 </section>
 }

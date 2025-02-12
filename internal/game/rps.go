@@ -1,8 +1,13 @@
 package game
 
 import (
+	"bytes"
+	"context"
 	"fmt"
+	"math/rand"
 	"net/http"
+	"rps_main/internal/templates"
+	"strconv"
 	"sync"
 	"time"
 
@@ -39,8 +44,9 @@ const (
 const RoundTime = 30 * time.Second
 
 type HTMXMessage struct {
-	Headers interface{} `json:"HEADERS"`
-	Choice  string      `json:"choice"`
+	Headers  interface{} `json:"HEADERS"`
+	Choice   string      `json:"choice"`
+	PlayerId string      `json:"playerId"`
 }
 
 type ClientMove struct {
@@ -70,18 +76,15 @@ func (c *Client) readPump() {
 			break
 		}
 
-		// do something with message
-		fmt.Println("htmxMsg", htmxMsg.Choice)
-		// call server setChoice
-		//c.gs.setChoice(c.id, move(htmxMsg.Text))
-		//fmt.Println("htmxMsg", htmxMsg)
-		//c.gs.broadcast <- message
+		// set move
+		c.gs.setChoice(c.id, move(htmxMsg.Choice))
 	}
 }
 
 func (c *Client) writePump() {
 	defer c.conn.Close()
 	for msg := range c.send {
+		fmt.Println("write", string(msg))
 		err := c.conn.WriteMessage(websocket.TextMessage, msg)
 		if err != nil {
 			fmt.Println("write err", err)
@@ -100,6 +103,7 @@ type Game struct {
 	Id              string
 	GameMode        string
 	Type            string
+	BestOf          int
 	State           int
 	Round           int
 	Timer           time.Duration
@@ -115,6 +119,7 @@ type GameServer struct {
 	unregister chan *Client
 	broadcast  chan []byte
 	ticker     *time.Ticker
+	tickerDone chan bool
 	game       *Game
 	mutex      sync.Mutex
 }
@@ -145,13 +150,15 @@ func NewServer(bestOf int) string {
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		ticker:     time.NewTicker(time.Second),
+		tickerDone: make(chan bool),
 		game: &Game{
-			Id:    id,
-			Type:  TypeAI,
-			State: StatePlaying,
-			Round: 1,
-			Timer: RoundTime,
+			Id:       id,
+			GameMode: "rps",
+			Type:     TypeAI,
+			BestOf:   bestOf,
+			State:    StatePlaying,
+			Round:    0,
+			Timer:    RoundTime,
 			Score: Score{
 				PlayerOne: 0,
 				PlayerTwo: 0,
@@ -160,23 +167,60 @@ func NewServer(bestOf int) string {
 		},
 	}
 	fmt.Println("new server", id)
-	manager.servers[id].ticker.Stop()
 	go manager.servers[id].run()
 	return id
 }
 
+func (gs *GameServer) Connect(c echo.Context) error {
+	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
+	if err != nil {
+		fmt.Println("ws err", err)
+		return err
+	}
+	client := &Client{
+		gs:   gs,
+		conn: conn,
+		send: make(chan []byte),
+	}
+	gs.register <- client
+	go client.readPump()
+	go client.writePump()
+	return nil
+}
+
+func (gs *GameServer) cleanup() {
+	fmt.Println("cleaning up server", gs.id)
+	gs.tickerDone <- true
+	close(gs.broadcast)
+	close(gs.register)
+	close(gs.unregister)
+	manager.mutex.Lock()
+	delete(manager.servers, gs.id)
+	defer manager.mutex.Unlock()
+}
+
 func (gs *GameServer) run() {
 	fmt.Println("running server", gs.id)
+	gs.tick()
 	for {
 		select {
 		case client := <-gs.register:
 			gs.clients[client] = true
+			client.id = "playerOne"
 			fmt.Println("client registered", client.id)
+			if len(gs.clients) == 2 || gs.game.Type == TypeAI {
+				gs.startRound()
+			}
 		case client := <-gs.unregister:
 			if _, ok := gs.clients[client]; ok {
+				fmt.Println("client unregistered", client.id)
 				close(client.send)
 				delete(gs.clients, client)
 				client.conn.Close()
+			}
+			if len(gs.clients) == 0 {
+				gs.cleanup()
+				return
 			}
 
 		// Send message to all clients
@@ -184,20 +228,44 @@ func (gs *GameServer) run() {
 			for client := range gs.clients {
 				client.send <- msg
 			}
+		}
+	}
+}
 
-		case <-gs.ticker.C:
-			if gs.game.State == StatePlaying {
-				gs.mutex.Lock()
-				gs.game.Timer -= time.Second
-				gs.mutex.Unlock()
-				if gs.game.Timer <= 0 {
-					gs.endRound()
-				} else {
-					//gs.broadcast <- temaplates.GameTimer(gs.game.Timer)
+func (gs *GameServer) tick() {
+	if gs.ticker == nil {
+		gs.ticker = time.NewTicker(time.Second)
+	}
+	go func() {
+		for {
+			select {
+			case <-gs.tickerDone:
+				gs.ticker.Stop()
+				return
+			case <-gs.ticker.C:
+				if gs.game.State == StatePlaying {
+					gs.mutex.Lock()
+					gs.game.Timer -= time.Second
+					gs.mutex.Unlock()
+					if gs.game.Timer < 0 {
+						gs.endRound()
+					} else {
+						gs.broadcast <- []byte(renderScoreboard(gs.game))
+					}
+				} else if gs.game.State == StateRoundOver {
+					gs.mutex.Lock()
+					gs.game.Timer -= time.Second
+					gs.mutex.Unlock()
+					if gs.game.Timer < 0 {
+						gs.startRound()
+						gs.broadcast <- []byte(renderSelection())
+					} else {
+						gs.broadcast <- []byte(renderScoreboard(gs.game))
+					}
 				}
 			}
 		}
-	}
+	}()
 }
 
 func (gs *GameServer) startRound() {
@@ -207,17 +275,29 @@ func (gs *GameServer) startRound() {
 	gs.game.PlayerTwoChoice = ""
 	gs.game.Round++
 	gs.game.Timer = RoundTime
-	gs.ticker.Reset(time.Second)
 	gs.mutex.Unlock()
+	gs.ticker.Reset(time.Second)
+}
+
+func makeAIChoice() move {
+	choices := []move{ChoiceRock, ChoicePaper, ChoiceScissors}
+	return choices[rand.Intn(len(choices))]
 }
 
 func (gs *GameServer) setChoice(playerId string, choice move) {
+	if gs.game.State != StatePlaying {
+		return
+	}
+
 	fmt.Println("setChoice", playerId, choice)
 	gs.mutex.Lock()
 	if playerId == "playerOne" {
 		gs.game.PlayerOneChoice = choice
 	} else if playerId == "playerTwo" {
 		gs.game.PlayerTwoChoice = choice
+	}
+	if gs.game.Type == TypeAI {
+		gs.game.PlayerTwoChoice = makeAIChoice()
 	}
 	gs.mutex.Unlock()
 	gs.checkRoundOver()
@@ -229,37 +309,101 @@ func (gs *GameServer) checkRoundOver() {
 	}
 }
 
+func getWinner(moveOne, moveTwo move) int {
+	if moveOne == moveTwo {
+		return 0
+	}
+	switch moveOne {
+	case "rock":
+		if moveTwo == "scissors" {
+			return 1
+		}
+	case "paper":
+		if moveTwo == "rock" {
+			return 1
+		}
+	case "scissors":
+		if moveTwo == "paper" {
+			return 1
+		}
+	}
+	return 2
+}
+
 func (gs *GameServer) endRound() {
 	gs.mutex.Lock()
 	gs.game.State = StateRoundOver
+	winner := getWinner(gs.game.PlayerOneChoice, gs.game.PlayerTwoChoice)
+	fmt.Println("endRound winner:", winner, gs.game.PlayerOneChoice, gs.game.PlayerTwoChoice)
+	if winner == 0 {
+		gs.game.Score.Draw++
+	} else if winner == 1 {
+		gs.game.Score.PlayerOne++
+	} else if winner == 2 {
+		gs.game.Score.PlayerTwo++
+	}
 	gs.mutex.Unlock()
+
+	// End Game
+	nRound := (gs.game.BestOf / 2) + 1
+	if gs.game.Score.PlayerOne == nRound || gs.game.Score.PlayerTwo == nRound {
+		gs.endGame(winner)
+		return
+	}
+
+	// TODO: render round result
+	gs.game.Timer = time.Second * 5
+	gs.broadcast <- []byte(renderEndRound(gs.game, winner))
 }
 
-func (gs *GameServer) endGame() {
+func (gs *GameServer) endGame(winner int) {
+	fmt.Println("endGame")
 	gs.mutex.Lock()
 	gs.game.State = StateGameOver
 	gs.mutex.Unlock()
+
+	// TODO: render game result
+	gs.broadcast <- []byte(renderEndGame(gs.game, winner))
 }
 
-func (gs *GameServer) Connect(c echo.Context) error {
-	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
-	if err != nil {
-		fmt.Println("ws err", err)
-		return err
+func renderScoreboard(g *Game) string {
+	buf := new(bytes.Buffer)
+	var playerOneScore string = strconv.Itoa(g.Score.PlayerOne)
+	var playerTwoScore string = strconv.Itoa(g.Score.PlayerTwo)
+	var timer string = g.Timer.String()
+	templates.Scoreboard(playerOneScore, playerTwoScore, timer).Render(context.Background(), buf)
+	return buf.String()
+}
+
+func renderSelection() string {
+	buf := new(bytes.Buffer)
+	templates.SelectionScreen().Render(context.Background(), buf)
+	html := `<div hx-swap-oob="innerHTML:#gameScreen">` + buf.String() + `</div>`
+	return html
+}
+
+func renderEndRound(g *Game, winner int) string {
+	buf := new(bytes.Buffer)
+	winnerName := ""
+	if winner == 0 {
+		winnerName = "Draw"
+	} else if winner == 1 {
+		winnerName = "Player 1"
+	} else if winner == 2 {
+		winnerName = "Player 2"
 	}
+	templates.ResultScreen(string(g.PlayerOneChoice), string(g.PlayerTwoChoice), winnerName).Render(context.Background(), buf)
+	return buf.String()
+}
 
-	client := &Client{
-		id:   uuid.NewString(),
-		gs:   gs,
-		conn: conn,
-		send: make(chan []byte),
+func renderEndGame(g *Game, winner int) string {
+	buf := new(bytes.Buffer)
+	winnerName := ""
+	if winner == 1 {
+		winnerName = "Player 1"
+	} else if winner == 2 {
+		winnerName = "Player 2"
 	}
-	gs.register <- client
-	fmt.Println("client pre", client.id)
-
-	go client.readPump()
-	go client.writePump()
-	fmt.Println("client after", client.id)
-
-	return nil
+	templates.EndScreen(winnerName).Render(context.Background(), buf)
+	return buf.String()
 }
