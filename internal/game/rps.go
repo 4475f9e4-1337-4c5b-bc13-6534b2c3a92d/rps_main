@@ -41,7 +41,8 @@ const (
 	ChoiceScissors move = "scissors"
 )
 
-const RoundTime = 30 * time.Second
+const RoundTime = time.Second * 30
+const RoundEndTime = time.Second * 3
 
 type HTMXMessage struct {
 	Headers  interface{} `json:"HEADERS"`
@@ -84,7 +85,7 @@ func (c *Client) readPump() {
 func (c *Client) writePump() {
 	defer c.conn.Close()
 	for msg := range c.send {
-		fmt.Println("write", string(msg))
+		fmt.Println("write:\n", string(msg))
 		err := c.conn.WriteMessage(websocket.TextMessage, msg)
 		if err != nil {
 			fmt.Println("write err", err)
@@ -242,12 +243,13 @@ func (gs *GameServer) tick() {
 			case <-gs.tickerDone:
 				gs.ticker.Stop()
 				return
+
 			case <-gs.ticker.C:
 				if gs.game.State == StatePlaying {
 					gs.mutex.Lock()
 					gs.game.Timer -= time.Second
 					gs.mutex.Unlock()
-					if gs.game.Timer < 0 {
+					if gs.game.Timer <= 0 {
 						gs.endRound()
 					} else {
 						gs.broadcast <- []byte(renderScoreboard(gs.game))
@@ -256,9 +258,17 @@ func (gs *GameServer) tick() {
 					gs.mutex.Lock()
 					gs.game.Timer -= time.Second
 					gs.mutex.Unlock()
-					if gs.game.Timer < 0 {
-						gs.startRound()
-						gs.broadcast <- []byte(renderSelection())
+					if gs.game.Timer <= 0 {
+						// Check End Game
+						nRound := (gs.game.BestOf / 2) + 1
+						if gs.game.Score.PlayerOne == nRound || gs.game.Score.PlayerTwo == nRound {
+							winner := getWinner(gs.game.PlayerOneChoice, gs.game.PlayerTwoChoice)
+							gs.endGame(winner)
+							return
+						} else {
+							gs.startRound()
+							gs.broadcast <- []byte(renderSelection(gs.game))
+						}
 					} else {
 						gs.broadcast <- []byte(renderScoreboard(gs.game))
 					}
@@ -300,10 +310,8 @@ func (gs *GameServer) setChoice(playerId string, choice move) {
 		gs.game.PlayerTwoChoice = makeAIChoice()
 	}
 	gs.mutex.Unlock()
-	gs.checkRoundOver()
-}
 
-func (gs *GameServer) checkRoundOver() {
+	// Check round is over
 	if gs.game.PlayerOneChoice != "" && gs.game.PlayerTwoChoice != "" {
 		gs.endRound()
 	}
@@ -335,6 +343,7 @@ func (gs *GameServer) endRound() {
 	gs.game.State = StateRoundOver
 	winner := getWinner(gs.game.PlayerOneChoice, gs.game.PlayerTwoChoice)
 	fmt.Println("endRound winner:", winner, gs.game.PlayerOneChoice, gs.game.PlayerTwoChoice)
+	// Score the game
 	if winner == 0 {
 		gs.game.Score.Draw++
 	} else if winner == 1 {
@@ -344,15 +353,8 @@ func (gs *GameServer) endRound() {
 	}
 	gs.mutex.Unlock()
 
-	// End Game
-	nRound := (gs.game.BestOf / 2) + 1
-	if gs.game.Score.PlayerOne == nRound || gs.game.Score.PlayerTwo == nRound {
-		gs.endGame(winner)
-		return
-	}
-
-	// TODO: render round result
-	gs.game.Timer = time.Second * 5
+	// Render round result
+	gs.game.Timer = RoundEndTime
 	gs.broadcast <- []byte(renderEndRound(gs.game, winner))
 }
 
@@ -362,7 +364,7 @@ func (gs *GameServer) endGame(winner int) {
 	gs.game.State = StateGameOver
 	gs.mutex.Unlock()
 
-	// TODO: render game result
+	// Render game result
 	gs.broadcast <- []byte(renderEndGame(gs.game, winner))
 }
 
@@ -371,14 +373,17 @@ func renderScoreboard(g *Game) string {
 	var playerOneScore string = strconv.Itoa(g.Score.PlayerOne)
 	var playerTwoScore string = strconv.Itoa(g.Score.PlayerTwo)
 	var timer string = g.Timer.String()
+	if g.Timer <= 0 {
+		timer = "_"
+	}
 	templates.Scoreboard(playerOneScore, playerTwoScore, timer).Render(context.Background(), buf)
 	return buf.String()
 }
 
-func renderSelection() string {
+func renderSelection(g *Game) string {
 	buf := new(bytes.Buffer)
 	templates.SelectionScreen().Render(context.Background(), buf)
-	html := `<div hx-swap-oob="innerHTML:#gameScreen">` + buf.String() + `</div>`
+	html := buf.String() + renderScoreboard(g)
 	return html
 }
 
@@ -386,24 +391,26 @@ func renderEndRound(g *Game, winner int) string {
 	buf := new(bytes.Buffer)
 	winnerName := ""
 	if winner == 0 {
-		winnerName = "Draw"
+		winnerName = "draw"
 	} else if winner == 1 {
-		winnerName = "Player 1"
+		winnerName = "player1"
 	} else if winner == 2 {
-		winnerName = "Player 2"
+		winnerName = "player2"
 	}
 	templates.ResultScreen(string(g.PlayerOneChoice), string(g.PlayerTwoChoice), winnerName).Render(context.Background(), buf)
-	return buf.String()
+	html := buf.String() + renderScoreboard(g)
+	return html
 }
 
 func renderEndGame(g *Game, winner int) string {
 	buf := new(bytes.Buffer)
 	winnerName := ""
 	if winner == 1 {
-		winnerName = "Player 1"
+		winnerName = "player1"
 	} else if winner == 2 {
-		winnerName = "Player 2"
+		winnerName = "player2"
 	}
 	templates.EndScreen(winnerName).Render(context.Background(), buf)
-	return buf.String()
+	html := buf.String() + renderScoreboard(g)
+	return html
 }

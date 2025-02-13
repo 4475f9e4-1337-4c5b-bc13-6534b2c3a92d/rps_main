@@ -1,73 +1,161 @@
 package templates
 
+func getBorderColorClass(move string) string {
+switch move {
+case "rock":
+return "border-rps-orange-500"
+case "paper":
+return "border-rps-blue-500"
+case "scissors":
+return "border-rps-green-500"
+default:
+return ""
+}
+}
+
 templ selectionCard(text string, icon string) {
-	<button
-		type="button"
-		@click={ "choice = (choice == '" + text + "') ? '' : '" + text + "'" }
-		class="flex flex-col justify-between p-6 w-50 bg-neutral-950 font-bold border-2 rounded-sm shadow-md transition cursor-pointer hover:shadow-neutral-300/50 hover:border-neutral-300"
-		:class={ "(choice=='" + text + "') ? 'shadow-rps-yellow-300/50 border-rps-yellow-300' : ''" }
-	>
-		<span class="text-3xl uppercase mb-3">
-			{ text }
-		</span>
-	</button>
+<button type="button" @click={ "choice = (choice == '" + text + "') ? '' : '" + text + "'" } :class={ "(choice=='" + text + "') ? 'shadow-rps-yellow-300/50 border-rps-yellow-300' : ''" } class={ "flex flex-col justify-between p-6 w-50 bg-neutral-950 font-bold border-2 rounded-sm shadow-md transition cursor-pointer hover:shadow-neutral-300/50 hover:border-neutral-300 " + getBorderColorClass(text) }>
+	<div class="text-3xl uppercase">
+		{ children... }
+	</div>
+</button>
 }
 
 templ Scoreboard(p1Score string, p2Score string, timer string) {
-	<div id="scoreboard" class="flex flex justify-between items-center gap-5">
-		<p>You: { p1Score }</p>
-		<h3 id="gameTimer">{ timer }</h3>
-		<p>Opponent: { p2Score }</p>
-	</div>
+<div id="scoreboard"
+	class="flex flex-1 mt-20 mb-5 p-2 w-full gap-20 justify-between items-center text-neutral-100 font-bold text-xl">
+	<p class="flex-1 capitalize text-rps-neutral-500">You</p>
+	<p class="flex-0">{ p1Score }</p>
+	<h3 id="gameTimer" class="text-rps-yellow-300">{ timer }</h3>
+	<p class="flex-0 ">{ p2Score }</p>
+	<p class="flex-1 text-right text-rps-neutral-500">AI</p>
+</div>
 }
 
 templ SelectionScreen() {
-	@Scoreboard("0", "0", "0")
-	<form
-		ws-send
-		x-data="{ choice: '' }"
-		class="flex flex-col gap-8 items-center bg-neutral-900 rounded-md p-10 inset-ring-3"
-	>
+<div hx-swap-oob="innerHTML:#gameScreen">
+	<form ws-send x-data="{ choice: '' }" class="flex flex-col gap-8 items-center">
 		<div class="grid grid-cols-3 gap-10 w-full max-w-4xl">
-			@selectionCard("rock", "")
-			@selectionCard("paper", "")
-			@selectionCard("scissors", "")
+			@selectionCard("rock", "") {
+			@RockText()
+			}
+			@selectionCard("paper", "") {
+			@PaperText()
+			}
+			@selectionCard("scissors", "") {
+			@ScissorsText()
+			}
 		</div>
-		<input type="hidden" name="choice" x-model="choice"/>
-		<input type="hidden" name="playerId" value="player1"/>
-		<button
-			type="submit"
-			:disabled="choice == ''"
-			class="w-1/4 p-4 rounded-sm bg-rps-blue-500 text-rps-white-100 shadow-lg hover:bg-rps-blue-400 transition cursor-pointer disabled:bg-neutral-700"
-		>
+		<input type="hidden" name="choice" x-model="choice" />
+		<input type="hidden" name="playerId" value="player1" />
+		<button type="submit" :disabled="choice == ''"
+			class="rounded-sm bg-rps-blue-500 shadow-md px-6 py-4 text-sm leading-5 font-semibold text-rps-white-100 hover:bg-rps-blue-400 transition cursor-pointer disabled:bg-neutral-700 disabled:cursor-not-allowed">
 			Confirm
 		</button>
 	</form>
+</div>
 }
 
 templ ResultScreen(playerOneMove, playerTwoMove, winner string) {
-	<div hx-swap-oob="innerHTML:#gameScreen">
-		@Scoreboard("0", "0", "0")
-		<h1>ResultScreen</h1>
-		<h2>{ playerOneMove }</h2>
-		<h2>{ playerTwoMove }</h2>
-		<h2>{ winner }</h2>
+<div hx-swap-oob="innerHTML:#gameScreen">
+	<div class="flex flex-col gap-8 items-center">
+		<div class="uppercase text-xl">
+			if winner == "player1" {
+			<span class="text-rps-yellow-300">Winner!</span>
+			} else if winner == "player2" {
+			<span class="text-rps-red-500">Loser!</span>
+			} else {
+			Draw!
+			}
+		</div>
+		<div class="flex flex-row gap-8 justify-center items-center">
+			<div class="flex flex-col items-center gap-2">
+				switch playerOneMove {
+				case "rock":
+				@selectionCard("rock", "") {
+				@RockText()
+				}
+				case "paper":
+				@selectionCard("paper", "") {
+				@PaperText()
+				}
+				case "scissors":
+				@selectionCard("scissors", "") {
+				@ScissorsText()
+				}
+				}
+			</div>
+			<div class="uppercase text-6xl">
+				if winner == "player1" {
+				<span>{ ">" }</span>
+				} else if winner == "player2" {
+				<span>{ "<" }</span>
+						} else {
+						<span>{ "==" }</span>
+						}
+			</div>
+			<div class="flex flex-col items-center gap-2">
+				switch playerTwoMove {
+				case "rock":
+				@selectionCard("rock", "") {
+				@RockText()
+				}
+				case "paper":
+				@selectionCard("paper", "") {
+				@PaperText()
+				}
+				case "scissors":
+				@selectionCard("scissors", "") {
+				@ScissorsText()
+				}
+				}
+			</div>
+		</div>
 	</div>
+</div>
 }
 
 templ EndScreen(winner string) {
-	<div hx-swap-oob="innerHTML:#gameScreen">
-		<h1>EndScreen</h1>
-		<h1>Winner: { winner }</h1>
-		<a href="/">Exit</a>
+<div hx-swap-oob="innerHTML:#gameScreen">
+	<div class="flex flex-col gap-8 items-center">
+		<div class="uppercase font-bold text-xl text-rps-yellow-300">
+			if winner == "player1" {
+			<span class="text-rps-yellow-300">You Win!</span>
+			} else if winner == "player2" {
+			<span class="text-rps-red-500">You Lose!</span>
+			}
+		</div>
+		<a href="/"
+			class="rounded-md bg-rps-red-500 px-5 py-2.5 text-sm leading-5 font-semibold text-white hover:bg-rps-red-400">
+			Exit
+		</a>
 	</div>
+</div>
 }
 
 templ Game(id string) {
-	<section id="game" hx-ext="ws" ws-connect={ "/game/" + id } class="">
-		<h1>Game</h1>
-		<div id="gameScreen" class="flex flex-col gap-8 items-center bg-neutral-900 rounded-md p-10 inset-ring-3">
-			@SelectionScreen()
-		</div>
-	</section>
+<section id="game" hx-ext="ws" ws-connect={ "/game/" + id } class="">
+	@Scoreboard("0", "0", "30s")
+	<div id="gameScreen" class="flex flex-col gap-8 items-center bg-neutral-900 rounded-md p-10 inset-ring-3">
+		<form ws-send x-data="{ choice: '' }" class="flex flex-col gap-8 items-center">
+			<div class="grid grid-cols-3 gap-10 w-full max-w-4xl">
+				@selectionCard("rock", "") {
+				@RockText()
+				}
+				@selectionCard("paper", "") {
+				@PaperText()
+				}
+				@selectionCard("scissors", "") {
+				@ScissorsText()
+				}
+			</div>
+			<input type="hidden" name="choice" x-model="choice" />
+			<input type="hidden" name="playerId" value="player1" />
+			<button type="submit" :disabled="choice == ''"
+				class="rounded-sm bg-rps-blue-500 shadow-md px-6 py-4 text-sm leading-5 font-semibold text-rps-white-100 hover:bg-rps-blue-400 transition cursor-pointer disabled:bg-neutral-700 disabled:cursor-not-allowed">
+				Confirm
+			</button>
+		</form>
+	</div>
+</section>
 }

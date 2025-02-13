@@ -1,44 +1,46 @@
 package templates
 
 templ head(title string) {
-	<head>
-		<title>{ title }</title>
-		<meta charset="UTF-8"/>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-		<link rel="stylesheet" href="/css/style.css"/>
-		<script src="https://unpkg.com/htmx.org@2.0.3"></script>
-		<script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
-		<!-- <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script> -->
-		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-	</head>
+
+<head>
+	<title>{ title }</title>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<link rel="stylesheet" href="/css/style.css" />
+	<script src="https://unpkg.com/htmx.org@2.0.3"></script>
+	<script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
+	<!-- <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script> -->
+	<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
 }
 
 templ nav() {
-	<a href="/" class="flex items-center justify-between p-2 bg-neutral-950 shadow-xl select-none cursor-pointer">
-		<h2 class="text-[2rem] font-bold text-rps-yellow-500">
-			<span class="align-middle text-rps-orange-500">R</span>
-			<span class="align-middle text-rps-white-300 text-sm">•</span>
-			<span class="align-middle text-rps-blue-500">P</span>
-			<span class="align-middle text-rps-white-300 text-sm">•</span>
-			<span class="align-middle text-rps-green-500">S</span>
-		</h2>
-		@Help()
+<nav class="flex items-center justify-between p-2 bg-neutral-950 shadow-xl select-none cursor-pointer">
+	<a href="/" class="text-[2rem] font-bold text-rps-yellow-300">
+		<span class="align-middle text-rps-orange-500">R</span>
+		<span class="align-middle text-rps-white-300 text-sm">•</span>
+		<span class="align-middle text-rps-blue-500">P</span>
+		<span class="align-middle text-rps-white-300 text-sm">•</span>
+		<span class="align-middle text-rps-green-500">S</span>
 	</a>
+	@Help()
+</nav>
 }
 
 templ footer() {
-	<footer class="p-2 border-t border-neutral-700">
-		//<p class="text-xs text-neutral-700">&copy; 2025. All rights reserved.</p>
-	</footer>
+<footer class="p-2 border-t border-neutral-700">
+	//<p class="text-xs text-neutral-700">&copy; 2025. All rights reserved.</p>
+</footer>
 }
 
 templ Layout(contents templ.Component, title string) {
-	@head(title)
-	<body class="flex flex-col h-screen text-rps-white-500 bg-neutral-950">
-		@nav()
-		<main class="flex-grow flex flex-col items-center" id="main">
-			@contents
-		</main>
-		@footer()
-	</body>
+@head(title)
+
+<body class="flex flex-col h-screen text-rps-white-500 bg-neutral-950">
+	@nav()
+	<main class="flex-grow flex flex-col items-center" id="main">
+		@contents
+	</main>
+	@footer()
+</body>
 }
