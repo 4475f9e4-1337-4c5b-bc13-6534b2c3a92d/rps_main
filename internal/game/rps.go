@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"rps_main/internal/templates"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -73,7 +74,7 @@ func (c *Client) readPump() {
 		htmxMsg := &HTMXMessage{}
 		err := c.conn.ReadJSON(htmxMsg)
 		if err != nil {
-			fmt.Println("decode err", err)
+			fmt.Println("close", err)
 			break
 		}
 
@@ -85,7 +86,7 @@ func (c *Client) readPump() {
 func (c *Client) writePump() {
 	defer c.conn.Close()
 	for msg := range c.send {
-		fmt.Println("write:\n", string(msg))
+		//fmt.Println("write:\n", string(msg))
 		err := c.conn.WriteMessage(websocket.TextMessage, msg)
 		if err != nil {
 			fmt.Println("write err", err)
@@ -167,7 +168,7 @@ func NewServer(bestOf int) string {
 			},
 		},
 	}
-	fmt.Println("new server", id)
+	fmt.Println("New server", id[:strings.Index(id, "-")], "nServers:", len(manager.servers))
 	go manager.servers[id].run()
 	return id
 }
@@ -201,7 +202,7 @@ func (gs *GameServer) cleanup() {
 }
 
 func (gs *GameServer) run() {
-	fmt.Println("running server", gs.id)
+	//fmt.Println("running server", gs.id)
 	gs.tick()
 	for {
 		select {
@@ -309,6 +310,7 @@ func (gs *GameServer) setChoice(playerId string, choice move) {
 	if gs.game.Type == TypeAI {
 		gs.game.PlayerTwoChoice = makeAIChoice()
 	}
+
 	gs.mutex.Unlock()
 
 	// Check round is over
@@ -342,7 +344,7 @@ func (gs *GameServer) endRound() {
 	gs.mutex.Lock()
 	gs.game.State = StateRoundOver
 	winner := getWinner(gs.game.PlayerOneChoice, gs.game.PlayerTwoChoice)
-	fmt.Println("endRound winner:", winner, gs.game.PlayerOneChoice, gs.game.PlayerTwoChoice)
+	//fmt.Println("endRound winner:", winner, gs.game.PlayerOneChoice, gs.game.PlayerTwoChoice)
 	// Score the game
 	if winner == 0 {
 		gs.game.Score.Draw++

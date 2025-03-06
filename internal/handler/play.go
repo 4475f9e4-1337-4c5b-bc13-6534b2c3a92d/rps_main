@@ -21,7 +21,6 @@ func HandlePlay(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	c.Logger().Print(bestOf)
 
 	// Create GameServer
 	id := game.NewServer(bestOf)

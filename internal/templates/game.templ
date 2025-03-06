@@ -1,35 +1,37 @@
 package templates
 
 func getBorderColorClass(move string) string {
-switch move {
-case "rock":
-return "border-rps-orange-500"
-case "paper":
-return "border-rps-blue-500"
-case "scissors":
-return "border-rps-green-500"
-default:
-return ""
-}
+	switch move {
+		case "rock":
+			return "border-rps-orange-500"
+		case "paper":
+			return "border-rps-blue-500"
+		case "scissors":
+			return "border-rps-green-500"
+		default:
+			return ""
+	}
 }
 
 templ selectionCard(text string, icon string) {
-<button type="button" @click={ "choice = (choice == '" + text + "') ? '' : '" + text + "'" } :class={ "(choice=='" + text + "') ? 'shadow-rps-yellow-300/50 border-rps-yellow-300' : ''" } class={ "flex flex-col justify-between p-6 w-50 bg-neutral-950 font-bold border-2 rounded-sm shadow-md transition cursor-pointer hover:shadow-neutral-300/50 hover:border-neutral-300 " + getBorderColorClass(text) }>
-	<div class="text-3xl uppercase">
+<button type="button" @click={ "choice = (choice == '" + text + "') ? '' : '" + text + "'" } :class={ "(choice=='" + text + "') ? 'shadow-rps-yellow-300/50 border-rps-yellow-300' : ''" } 
+		class={ "flex flex-col justify-between p-6 w-50 bg-neutral-950 font-bold border-2 rounded-sm shadow-md transition cursor-pointer hover:shadow-neutral-300/50 hover:border-neutral-300 " + getBorderColorClass(text) }>
+	<div class="flex flex-col text-3xl uppercase">
 		{ children... }
 	</div>
 </button>
 }
 
-templ Scoreboard(p1Score string, p2Score string, timer string) {
-<div id="scoreboard"
-	class="flex flex-1 mt-20 mb-5 p-2 w-full gap-20 justify-between items-center text-neutral-100 font-bold text-xl">
-	<p class="flex-1 capitalize text-rps-neutral-500">You</p>
-	<p class="flex-0">{ p1Score }</p>
-	<h3 id="gameTimer" class="text-rps-yellow-300">{ timer }</h3>
-	<p class="flex-0 ">{ p2Score }</p>
-	<p class="flex-1 text-right text-rps-neutral-500">AI</p>
-</div>
+templ RockImage() {
+	<img src="https://images.vexels.com/media/users/3/145827/isolated/preview/357f06ecbaaa77d750259c459c0ed55f-round-rock-illustration-by-vexels.png" alt="Rock" class="m-auto w-28 h-28" />
+}
+
+templ PaperImage() {
+	<img src="https://images.vexels.com/media/users/3/145827/isolated/preview/357f06ecbaaa77d750259c459c0ed55f-round-rock-illustration-by-vexels.png" alt="Rock" class="m-auto w-28 h-28" />
+}
+
+templ ScissorsImage() {
+	<img src="https://images.vexels.com/media/users/3/145827/isolated/preview/357f06ecbaaa77d750259c459c0ed55f-round-rock-illustration-by-vexels.png" alt="Rock" class="m-auto w-28 h-28" />
 }
 
 templ SelectionScreen() {
@@ -37,13 +39,16 @@ templ SelectionScreen() {
 	<form ws-send x-data="{ choice: '' }" class="flex flex-col gap-8 items-center">
 		<div class="grid grid-cols-3 gap-10 w-full max-w-4xl">
 			@selectionCard("rock", "") {
-			@RockText()
+				@RockText()
+				@RockImage()
 			}
 			@selectionCard("paper", "") {
-			@PaperText()
+				@PaperText()
+				@PaperImage()
 			}
 			@selectionCard("scissors", "") {
-			@ScissorsText()
+				@ScissorsText()
+				@ScissorsImage()
 			}
 		</div>
 		<input type="hidden" name="choice" x-model="choice" />
@@ -61,28 +66,29 @@ templ ResultScreen(playerOneMove, playerTwoMove, winner string) {
 	<div class="flex flex-col gap-8 items-center">
 		<div class="uppercase text-xl">
 			if winner == "player1" {
-			<span class="text-rps-yellow-300">Winner!</span>
+				<span class="text-rps-yellow-300">Winner!</span>
 			} else if winner == "player2" {
-			<span class="text-rps-red-500">Loser!</span>
+				<span class="text-rps-red-500">Loser!</span>
 			} else {
-			Draw!
+				Draw!
 			}
 		</div>
 		<div class="flex flex-row gap-8 justify-center items-center">
 			<div class="flex flex-col items-center gap-2">
 				switch playerOneMove {
-				case "rock":
-				@selectionCard("rock", "") {
-				@RockText()
-				}
-				case "paper":
-				@selectionCard("paper", "") {
-				@PaperText()
-				}
-				case "scissors":
-				@selectionCard("scissors", "") {
-				@ScissorsText()
-				}
+					case "rock":
+						@selectionCard("rock", "") {
+							@RockText()
+							@RockImage()
+						}
+					case "paper":
+						@selectionCard("paper", "") {
+							@PaperText()
+						}
+					case "scissors":
+						@selectionCard("scissors", "") {
+							@ScissorsText()
+						}
 				}
 			</div>
 			<div class="uppercase text-6xl">
@@ -98,15 +104,16 @@ templ ResultScreen(playerOneMove, playerTwoMove, winner string) {
 				switch playerTwoMove {
 				case "rock":
 				@selectionCard("rock", "") {
-				@RockText()
+					@RockText()
+					@RockImage()
 				}
 				case "paper":
 				@selectionCard("paper", "") {
-				@PaperText()
+					@PaperText()
 				}
 				case "scissors":
 				@selectionCard("scissors", "") {
-				@ScissorsText()
+					@ScissorsText()
 				}
 				}
 			</div>
@@ -133,6 +140,17 @@ templ EndScreen(winner string) {
 </div>
 }
 
+templ Scoreboard(p1Score string, p2Score string, timer string) {
+<div id="scoreboard"
+	class="flex flex-1 mt-20 mb-5 p-2 w-full gap-20 justify-between items-center text-neutral-100 font-bold text-xl">
+	<p class="flex-1 capitalize text-rps-neutral-500">You</p>
+	<p class="flex-0">{ p1Score }</p>
+	<h3 id="gameTimer" class="text-rps-yellow-300">{ timer }</h3>
+	<p class="flex-0 ">{ p2Score }</p>
+	<p class="flex-1 text-right text-rps-neutral-500">AI</p>
+</div>
+}
+
 templ Game(id string) {
 <section id="game" hx-ext="ws" ws-connect={ "/game/" + id } class="">
 	@Scoreboard("0", "0", "30s")
@@ -140,13 +158,14 @@ templ Game(id string) {
 		<form ws-send x-data="{ choice: '' }" class="flex flex-col gap-8 items-center">
 			<div class="grid grid-cols-3 gap-10 w-full max-w-4xl">
 				@selectionCard("rock", "") {
-				@RockText()
+					@RockText()
+					@RockImageDemo()
 				}
 				@selectionCard("paper", "") {
-				@PaperText()
+					@PaperText()
 				}
 				@selectionCard("scissors", "") {
-				@ScissorsText()
+					@ScissorsText()
 				}
 			</div>
 			<input type="hidden" name="choice" x-model="choice" />
