@@ -1,0 +1,61 @@
+package templates
+
+templ FormInput(ftype, id, placeholder string) {
+	<label for={ id } class="block mb-2 text-sm/6 font-medium text-rps-neutral-300">{ placeholder }</label>
+	<input
+		type={ ftype }
+		name={ id }
+		id={ id }
+		required
+		class="w-full p-2 text-rps-white-300 rounded-sm outline-1 outline-rps-neutral-800 focus:border-1 border-rps-white-300 focus:border-rps-blue-500 bg-rps-neutral-950"
+	/>
+}
+
+templ FormButton(text string) {
+	<button
+		type="submit"
+		class="flex w-full mt-2 justify-center rounded-sm bg-rps-blue-500 px-3 py-1.5 text-sm/6 font-semibold text-rps-white-100 shadow-md hover:bg-rps-blue-400 cursor-pointer"
+	>
+		{ text }
+	</button>
+}
+
+templ SwapFormButton(text, href string) {
+	<p class="mt-5 text-center text-sm">
+		<a
+			class="text-rps-white-300 hover:text-rps-yellow-300 float-right font-medium cursor-pointer"
+			hx-get={ href }
+			hx-target="#auth-form"
+			hx-swap="innerHTML"
+		>
+			{ text }
+		</a>
+	</p>
+}
+
+templ AuthFormLayout() {
+	<div class="flex min-w-sm flex-col justify-center bg-neutral-950">
+		<div id="auth-form" class="w-full m-auto rounded-sm p-5 border-0 border-rps-white-300 inset-ring-2 shadow-md">
+			{ children... }
+		</div>
+	</div>
+}
+
+templ RegisterForm() {
+	<form hx-post="/auth/register" class="space-y-4">
+		@FormInput("text", "username", "Username")
+		@FormInput("password", "password", "Password")
+		@FormInput("password", "confirm_password", "Confirm Password")
+		@FormButton("Register")
+	</form>
+	@SwapFormButton("Already have an account?", "/login")
+}
+
+templ LoginForm() {
+	<form hx-post="/auth/login" class="space-y-4">
+		@FormInput("text", "username", "Username")
+		@FormInput("password", "password", "Password")
+		@FormButton("Log In")
+	</form>
+	@SwapFormButton("Create Account", "/register")
+}

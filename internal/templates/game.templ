@@ -36,7 +36,7 @@ templ ScissorsImage() {
 
 templ SelectionScreen() {
 <div hx-swap-oob="innerHTML:#gameScreen">
-	<form ws-send x-data="{ choice: '' }" class="flex flex-col gap-8 items-center">
+	<form ws-senx-data="{ choice: '' }" class="flex flex-col gap-8 items-center">
 		<div class="grid grid-cols-3 gap-10 w-full max-w-4xl">
 			@selectionCard("rock", "") {
 				@RockText()
@@ -159,7 +159,7 @@ templ Game(id string) {
 			<div class="grid grid-cols-3 gap-10 w-full max-w-4xl">
 				@selectionCard("rock", "") {
 					@RockText()
-					@RockImageDemo()
+					@RockImage()
 				}
 				@selectionCard("paper", "") {
 					@PaperText()
