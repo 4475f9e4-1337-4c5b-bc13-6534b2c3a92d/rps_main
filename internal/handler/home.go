@@ -24,6 +24,6 @@ func HandleRegister(c echo.Context) error {
 
 func HandleProfile(c echo.Context) error {
 	log.Println("HandleProfile")
-	comp := templates.Layout(templates.Home(), "RPS - Profile")
+	comp := templates.Layout(templates.Profile(), "RPS - Profile")
 	return Render(c, comp)
 }

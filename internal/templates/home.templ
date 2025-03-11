@@ -24,4 +24,13 @@ templ Profile() {
 	<p>Play a quick game of rock-paper-scissors against the A.I.</p>
 </section>
 <h1>Profile</h1>
+<script>
+	document.addEventListener("htmx:configRequest", function (event) {
+		let token = document.cookie.split('; ').find(row => row.startsWith('auth_token='));
+		if (token) {
+			token = token.split('=')[1]; // Extract token value
+			event.detail.headers['Authorization'] = "Bearer " + token;
+		}
+	});
+</script>
 }
