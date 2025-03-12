@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"net/http"
 	"os"
 	"rps_main/internal/game"
 	"rps_main/internal/handler"
@@ -20,58 +19,46 @@ func init() {
 }
 
 func main() {
+	secret := os.Getenv("JWT_SECRET")
 	e := echo.New()
 	e.HideBanner = true
 	e.Static("/", "static")
-	e.GET("/", handler.HandleHome)
+	e.GET("/", handler.HandleHome, handler.CookieAuthMiddleware, echojwt.WithConfig(echojwt.Config{
+		SigningKey:             []byte(secret),
+		ContinueOnIgnoredError: true,
+		SuccessHandler: func(c echo.Context) {
+			log.Println("JWT On Home Auth")
+			c.Response().Header().Set("HX-Redirect", "/profile")
+		},
+		ErrorHandler: func(c echo.Context, err error) error {
+			log.Println("No JWT On Home no Auth", err)
+			return nil
+		},
+	}))
 
 	e.GET("/login", handler.HandleLogin)
 	e.GET("/register", handler.HandleRegister)
+	e.GET("/logout", handler.HandleLogout)
 
-	secret := os.Getenv("JWT_SECRET")
-	e.GET("/profile", handler.HandleProfile,
-		func(next echo.HandlerFunc) echo.HandlerFunc {
-			return func(c echo.Context) error {
-				if c.Request().Header.Get("Authorization") == "" {
-					cookie, err := c.Cookie("access_token")
-					if err == nil {
-						log.Println("Checking for auth token in cookie:", cookie.Value)
-						c.Request().Header.Set("Authorization", "Bearer "+cookie.Value)
-					}
-				}
-				return next(c)
-			}
-		},
-		echojwt.WithConfig(echojwt.Config{
-			SigningKey:             []byte(secret),
-			ContinueOnIgnoredError: false,
-			ErrorHandler: func(c echo.Context, err error) error {
-				log.Println("Error JWT Redirect:", err)
-				c.Response().Header().Set("HX-Redirect", "/")
-				return c.Redirect(http.StatusSeeOther, "/")
-			},
-		}))
+	e.GET("/profile", handler.HandleProfile, handler.CookieAuthMiddleware, handler.EchoJWTMiddleware(secret))
+	e.GET("/profile/:id/history", handler.HandleProfileHistory)
+	e.GET("/profile/:id/stats", handler.HandleProfileStats)
 
-	// authUrl, err := url.Parse("http://localhost:9010")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// authTargets := []*middleware.ProxyTarget{
-	// 	{URL: authUrl},
-	// }
-	//
-	// mmUrl, err := url.Parse("http://localhost:9100")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// mmTargets := []*middleware.ProxyTarget{ {URL: mmUrl}, }
+	// Forward requests to microservices
 
 	auth := e.Group("/auth")
 	auth.POST("/login", handler.ForwardAuthRequest)
 	auth.POST("/register", handler.ForwardAuthRequest)
-	// auth.Use(middleware.Proxy(middleware.NewRoundRobinBalancer(authTargets)))
 
-	//mm := e.Group("/mm")
+	// mmUrl, err := url.Parse("http://localhost:9100")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// mmTargets := []*middleware.ProxyTarget{{URL: mmUrl}}
+	// e.GET("/mm/cancel", handler.CancelMatchmaking)
+	// mm := e.Group("/mm")
+	// mm.POST("/join", handler.ForwardMatchmakingRequest)
+	// mm.POST("/leave", handler.ForwardMatchmakingRequest)
 	// mm.Use(middleware.Proxy(middleware.NewRoundRobinBalancer(mmTargets)))
 
 	e.POST("/play", handler.HandlePlay)

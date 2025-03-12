@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"rps_main/internal/templates"
-	"time"
 
 	"github.com/labstack/echo/v4"
 )
@@ -18,24 +17,15 @@ type AuthError struct {
 	Error string `json:"error"`
 }
 
-const (
-	authUrl = "http://localhost:9010"
-)
-
-var httpClient = &http.Client{
-	Timeout: 10 * time.Second,
-}
-
 func ForwardAuthRequest(c echo.Context) error {
-	log.Println("Forwarding request")
-	path := authUrl + c.Request().URL.Path
+	path := accountsUrl + c.Request().URL.Path
 	log.Println("Forwarding request to:", path)
 	req, err := http.NewRequest(http.MethodPost, path, c.Request().Body)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create request"})
 	}
 	req.Header = c.Request().Header
-	resp, err := httpClient.Do(req)
+	resp, err := HttpClient.Do(req)
 	if err != nil {
 		log.Println(err)
 		return c.JSON(http.StatusBadGateway, map[string]string{"error": "failed to forward request"})
@@ -48,7 +38,6 @@ func ForwardAuthRequest(c echo.Context) error {
 		if err := json.NewDecoder(resp.Body).Decode(&authResponse); err != nil {
 			log.Println(err)
 		}
-		log.Println("Response:", authResponse)
 		cookie := new(http.Cookie)
 		cookie.Name = "access_token"
 		cookie.Value = authResponse.AccessToken

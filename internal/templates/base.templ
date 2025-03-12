@@ -1,43 +1,71 @@
 package templates
 
 templ head(title string) {
-	<head>
-		<title>{ title }</title>
-		<meta charset="UTF-8"/>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-		<link rel="stylesheet" href="/css/style.css"/>
-		<script src="https://unpkg.com/htmx.org@2.0.3"></script>
-		<script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
-		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-	</head>
+
+<head>
+	<title>{ title }</title>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<link rel="stylesheet" href="/css/style.css" />
+	<script src="https://unpkg.com/htmx.org@2.0.3"></script>
+	<script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
+	<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
 }
 
-templ nav() {
-	<nav class="flex items-center justify-between p-2 bg-neutral-950 shadow-xl select-none cursor-pointer">
-		<a href="/" class="text-[2rem] font-bold text-rps-yellow-300">
-			<span class="align-middle text-rps-orange-500">R</span>
-			<span class="align-middle text-rps-white-300 text-sm">•</span>
-			<span class="align-middle text-rps-blue-500">P</span>
-			<span class="align-middle text-rps-white-300 text-sm">•</span>
-			<span class="align-middle text-rps-green-500">S</span>
-		</a>
+templ nav(auth bool) {
+<nav class="flex items-center justify-between p-2 bg-neutral-950 shadow-xl select-none cursor-pointer">
+	<a href="/" class="text-[2rem] font-bold text-rps-yellow-300">
+		<span class="align-middle text-rps-orange-500">R</span>
+		<span class="align-middle text-rps-white-300 text-sm">•</span>
+		<span class="align-middle text-rps-blue-500">P</span>
+		<span class="align-middle text-rps-white-300 text-sm">•</span>
+		<span class="align-middle text-rps-green-500">S</span>
+	</a>
+	<div class="flex mr-2">
 		@Help()
-	</nav>
+		if auth {
+		@logout()
+		}
+	</div>
+</nav>
+}
+
+templ logout() {
+<button hx-get="/logout" type="button" hx-target="body"
+	class="flex justify-center items-center cursor-pointer text-sm text-rps-white-100 hover:text-rps-red-600">
+	<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" width="30px"
+		height="30px">
+		<g stroke-width="0"></g>
+		<g stroke-linecap="round" stroke-linejoin="round"></g>
+		<g>
+			<path d="M21 12L13 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+				stroke-linejoin="round"></path>
+			<path d="M18 15L20.913 12.087V12.087C20.961 12.039 20.961 11.961 20.913 11.913V11.913L18 9"
+				stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+			<path
+				d="M16 5V4.5V4.5C16 3.67157 15.3284 3 14.5 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H14.5C15.3284 21 16 20.3284 16 19.5V19.5V19"
+				stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+		</g>
+	</svg>
+	<div class="flex-1 ml-1 align-bottom inline">Logout</div>
+</button>
 }
 
 templ footer() {
-	<footer class="p-2 border-t border-neutral-700">
-		//<p class="text-xs text-neutral-700">&copy; 2025. All rights reserved.</p>
-	</footer>
+<footer class="p-2 border-t border-neutral-700">
+	//<p class="text-xs text-neutral-700">&copy; 2025. All rights reserved.</p>
+</footer>
 }
 
-templ Layout(contents templ.Component, title string) {
-	@head(title)
-	<body class="flex flex-col h-screen text-rps-white-500 bg-neutral-950">
-		@nav()
-		<main class="flex-grow flex flex-col items-center" id="main">
-			@contents
-		</main>
-		@footer()
-	</body>
+templ Layout(contents templ.Component, title string, auth bool) {
+@head(title)
+
+<body class="flex flex-col h-screen text-rps-white-500 bg-neutral-950">
+	@nav(auth)
+	<main class="flex-grow flex flex-col items-center" id="main">
+		@contents
+	</main>
+	@footer()
+</body>
 }

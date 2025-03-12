@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"rps_main/internal/game"
+	"log"
 	"rps_main/internal/templates"
 	"strconv"
 
@@ -19,13 +19,25 @@ type GameServer struct {
 func HandlePlay(c echo.Context) error {
 	bestOf, err := strconv.Atoi(c.FormValue("bestOf"))
 	if err != nil {
+		log.Println("Invalid bestOf value")
 		return err
+	}
+	mode := c.FormValue("mode")
+
+	log.Println("Starting game with bestOf:", bestOf, "mode:", mode)
+	if mode == "" {
+		mode = "ai"
+		comp := templates.Game("1")
+		return Render(c, comp)
+	} else {
+		mode = "pvp"
+		comp := templates.InQueue("1")
+		return Render(c, comp)
 	}
 
 	// Create GameServer
-	id := game.NewServer(bestOf)
-
+	//id := game.NewServer(bestOf)
 	// Send Game Template
-	comp := templates.Game(id)
-	return Render(c, comp)
+	//comp := templates.Game(id)
+	//return Render(c, comp)
 }

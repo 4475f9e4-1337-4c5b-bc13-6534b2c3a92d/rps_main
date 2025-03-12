@@ -13,24 +13,3 @@ templ Home() {
 @LoginForm()
 }
 }
-
-templ Profile() {
-<section class="flex flex-col w-screen items-center mt-20 mb-10 gap-8 ">
-	<h1 class="text-4xl font-bold uppercase flex gap-5">
-		<span class="text-rps-orange-500">Rock</span>
-		<span class="text-rps-blue-500">Paper</span>
-		<span class="text-rps-green-500">Scissors</span>
-	</h1>
-	<p>Play a quick game of rock-paper-scissors against the A.I.</p>
-</section>
-<h1>Profile</h1>
-<script>
-	document.addEventListener("htmx:configRequest", function (event) {
-		let token = document.cookie.split('; ').find(row => row.startsWith('auth_token='));
-		if (token) {
-			token = token.split('=')[1]; // Extract token value
-			event.detail.headers['Authorization'] = "Bearer " + token;
-		}
-	});
-</script>
-}
