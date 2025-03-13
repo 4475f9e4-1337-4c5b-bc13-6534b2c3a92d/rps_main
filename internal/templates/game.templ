@@ -1,180 +1,235 @@
 package templates
 
+import "fmt"
+
 func getBorderColorClass(move string) string {
 	switch move {
-		case "rock":
-			return "border-rps-orange-500"
-		case "paper":
-			return "border-rps-blue-500"
-		case "scissors":
-			return "border-rps-green-500"
-		default:
-			return ""
+	case "rock":
+		return "border-rps-orange-500"
+	case "paper":
+		return "border-rps-blue-500"
+	case "scissors":
+		return "border-rps-green-500"
+	default:
+		return ""
 	}
 }
 
-templ selectionCard(text string, icon string) {
-<button type="button" @click={ "choice = (choice == '" + text + "') ? '' : '" + text + "'" } :class={ "(choice=='" + text + "') ? 'shadow-rps-yellow-300/50 border-rps-yellow-300' : ''" } 
-		class={ "flex flex-col justify-between p-6 w-50 bg-neutral-950 font-bold border-2 rounded-sm shadow-md transition cursor-pointer hover:shadow-neutral-300/50 hover:border-neutral-300 " + getBorderColorClass(text) }>
-	<div class="flex flex-col text-3xl uppercase">
-		{ children... }
+templ GameMenuButton(text, subtext string, bestOf string) {
+	<button
+		@click={ "bestOf = bestOf == " + bestOf + " ? '0' : " + bestOf }
+		class="flex flex-col justify-between p-6 w-50 bg-neutral-950 font-bold border-2 rounded-sm shadow-md transition cursor-pointer hover:shadow-neutral-300/50 hover:border-neutral-300"
+		:class={ "bestOf==" + bestOf + " ? 'shadow-rps-yellow-300/50 border-rps-yellow-300' : ''" }
+	>
+		<span class="text-3xl uppercase mb-3">
+			{ text }
+		</span>
+		<span class="text-xs">{ subtext }</span>
+	</button>
+}
+
+templ GameModeToggle() {
+	<div class="flex w-full align-middle justify-end pl-1">
+		<label class="inline-flex items-center font-medium cursor-pointer">
+			<input type="checkbox" name="mode" x-model="pvp" class="sr-only peer"/>
+			<span
+				class="me-3 text-md font-bold tracking-wide text-rps-blue-500 peer peer-checked:text-neutral-500 select-none"
+			>AI</span>
+			<div
+				class="relative w-11 h-6 bg-rps-blue-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-white peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rps-orange-400"
+			></div>
+			<span
+				class="ms-3 text-md font-bold tracking-wide text-neutral-500 peer peer-checked:text-rps-orange-400 select-none"
+			>PvP</span>
+		</label>
 	</div>
-</button>
 }
 
-templ RockImage() {
-	<img src="https://images.vexels.com/media/users/3/145827/isolated/preview/357f06ecbaaa77d750259c459c0ed55f-round-rock-illustration-by-vexels.png" alt="Rock" class="m-auto w-28 h-28" />
-}
-
-templ PaperImage() {
-	<img src="https://images.vexels.com/media/users/3/145827/isolated/preview/357f06ecbaaa77d750259c459c0ed55f-round-rock-illustration-by-vexels.png" alt="Rock" class="m-auto w-28 h-28" />
-}
-
-templ ScissorsImage() {
-	<img src="https://images.vexels.com/media/users/3/145827/isolated/preview/357f06ecbaaa77d750259c459c0ed55f-round-rock-illustration-by-vexels.png" alt="Rock" class="m-auto w-28 h-28" />
-}
-
-templ SelectionScreen() {
-<div hx-swap-oob="innerHTML:#gameScreen">
-	<form ws-send x-data="{ choice: '' }" class="flex flex-col gap-8 items-center">
+templ GameMenu() {
+	<section
+		id="game-menu"
+		x-data="{ bestOf: '0', pvp: true }"
+		class="flex flex-col w-3xl gap-8 items-center bg-neutral-900 rounded-md p-8 inset-ring-3"
+	>
+		@GameModeToggle()
 		<div class="grid grid-cols-3 gap-10 w-full max-w-4xl">
-			@selectionCard("rock", "") {
-				@RockText()
-				@RockImage()
-			}
-			@selectionCard("paper", "") {
-				@PaperText()
-				@PaperImage()
-			}
-			@selectionCard("scissors", "") {
-				@ScissorsText()
-				@ScissorsImage()
-			}
+			@GameMenuButton("Best of 1", "First to win 1 round.", "1")
+			@GameMenuButton("Best of 3", "First to win 2 rounds.", "3")
+			@GameMenuButton("Best of 5", "First to win 3 rounds.", "5")
 		</div>
-		<input type="hidden" name="choice" x-model="choice" />
-		<input type="hidden" name="playerId" value="player1" />
-		<button type="submit" :disabled="choice == ''"
-			class="rounded-sm bg-rps-blue-500 shadow-md px-6 py-4 text-sm leading-5 font-semibold text-rps-white-100 hover:bg-rps-blue-400 transition cursor-pointer disabled:bg-neutral-700 disabled:cursor-not-allowed">
-			Confirm
+		<input type="hidden" name="bestOf" x-model="bestOf"/>
+		<button
+			hx-post="/play"
+			hx-target="#game-menu"
+			hx-swap="innerHTML"
+			hx-include="[name='bestOf'], [name='mode']"
+			:disabled="bestOf == 0"
+			class="w-40 rounded-sm shadow-md px-6 py-4 text-sm leading-5 font-semibold cursor-pointer disabled:bg-neutral-700 disabled:text-rps-white-100 disabled:inset-shadow-sm disable:inset-shadow-rps-neutral-950 disabled:cursor-not-allowed uppercase transition-colors"
+			:class="pvp ? 'bg-rps-orange-500 hover:bg-rps-orange-400 text-neutral-950' : 'bg-rps-blue-500 hover:bg-rps-blue-400 text-rps-white-100'"
+		>
+			<span x-show="bestOf == '0'">Select a mode</span>
+			<span x-show="bestOf != '0'" x-text="pvp ? 'Queue' : 'Play'"></span>
 		</button>
-	</form>
-</div>
+	</section>
 }
 
-templ ResultScreen(playerOneMove, playerTwoMove, winner string) {
-<div hx-swap-oob="innerHTML:#gameScreen">
-	<div class="flex flex-col gap-8 items-center">
-		<div class="uppercase text-xl">
-			if winner == "player1" {
-				<span class="text-rps-yellow-300">Winner!</span>
-			} else if winner == "player2" {
-				<span class="text-rps-red-500">Loser!</span>
-			} else {
-				Draw!
-			}
-		</div>
-		<div class="flex flex-row gap-8 justify-center items-center">
-			<div class="flex flex-col items-center gap-2">
-				switch playerOneMove {
-					case "rock":
-						@selectionCard("rock", "") {
-							@RockText()
-							@RockImage()
-						}
-					case "paper":
-						@selectionCard("paper", "") {
-							@PaperText()
-						}
-					case "scissors":
-						@selectionCard("scissors", "") {
-							@ScissorsText()
-						}
-				}
+templ InQueue(bestOf string, mode string) {
+	<div
+		id="game"
+		hx-ext="ws"
+		ws-connect={ fmt.Sprintf("ws://localhost:9100/?bestOf=%v&type=%v", bestOf, mode) }
+		class="w-full"
+	>
+		<div class="flex flex-col items-center gap-4">
+			<div class="flex items-center justify-center gap-3 animate-pulse">
+				<svg
+					style="animation-duration: 3s;"
+					class="size-8 animate-spin text-white"
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+				>
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path
+						class="opacity-75"
+						fill="currentColor"
+						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+					></path>
+				</svg>
+				<div class="flex items-center">
+					<span class="text-2xl">In Queue: <span id="queue-timer" class="text-2xl font-semibold">_</span></span>
+				</div>
 			</div>
-			<div class="uppercase text-6xl">
-				if winner == "player1" {
-				<span>{ ">" }</span>
-				} else if winner == "player2" {
-				<span>{ "<" }</span>
-						} else {
-						<span>{ "==" }</span>
-						}
-			</div>
-			<div class="flex flex-col items-center gap-2">
-				switch playerTwoMove {
-				case "rock":
-				@selectionCard("rock", "") {
-					@RockText()
-					@RockImage()
-				}
-				case "paper":
-				@selectionCard("paper", "") {
-					@PaperText()
-				}
-				case "scissors":
-				@selectionCard("scissors", "") {
-					@ScissorsText()
-				}
-				}
-			</div>
+			<form ws-send>
+				<input hidden type="number" name="type" value="0" readonly/>
+				<button
+					type="submit"
+					class="w-40 rounded-sm shadow-md px-6 py-4 text-sm leading-5 font-semibold cursor-pointer bg-rps-red-500 hover:bg-rps-red-400 text-rps-white-100 uppercase transition-colors"
+				>
+					<span>Leave Queue</span>
+				</button>
+			</form>
+			<div hidden id="queue-data"></div>
 		</div>
 	</div>
-</div>
-}
-
-templ EndScreen(winner string) {
-<div hx-swap-oob="innerHTML:#gameScreen">
-	<div class="flex flex-col gap-8 items-center">
-		<div class="uppercase font-bold text-xl text-rps-yellow-300">
-			if winner == "player1" {
-			<span class="text-rps-yellow-300">You Win!</span>
-			} else if winner == "player2" {
-			<span class="text-rps-red-500">You Lose!</span>
-			}
-		</div>
-		<a href="/"
-			class="rounded-md bg-rps-red-500 px-5 py-2.5 text-sm leading-5 font-semibold text-white hover:bg-rps-red-400">
-			Exit
-		</a>
-	</div>
-</div>
-}
-
-templ Scoreboard(p1Score string, p2Score string, timer string) {
-<div id="scoreboard"
-	class="flex flex-1 mt-20 mb-5 p-2 w-full gap-20 justify-between items-center text-neutral-100 font-bold text-xl">
-	<p class="flex-1 capitalize text-rps-neutral-500">You</p>
-	<p class="flex-0">{ p1Score }</p>
-	<h3 id="gameTimer" class="text-rps-yellow-300">{ timer }</h3>
-	<p class="flex-0 ">{ p2Score }</p>
-	<p class="flex-1 text-right text-rps-neutral-500">AI</p>
-</div>
 }
 
 templ Game(id string) {
-<section id="game" hx-ext="ws" ws-connect={ "/game/" + id } class="">
-	@Scoreboard("0", "0", "30s")
-	<div id="gameScreen" class="flex flex-col gap-8 items-center bg-neutral-900 rounded-md p-10 inset-ring-3">
-		<form ws-send x-data="{ choice: '' }" class="flex flex-col gap-8 items-center">
-			<div class="grid grid-cols-3 gap-10 w-full max-w-4xl">
-				@selectionCard("rock", "") {
-					@RockText()
-					@RockImage()
-				}
-				@selectionCard("paper", "") {
-					@PaperText()
-				}
-				@selectionCard("scissors", "") {
-					@ScissorsText()
-				}
+	<section id="game" hx-ext="ws" ws-connect={ "ws://localhost:9101/game/" + id } class="w-full">
+		<div
+			id="scoreboard"
+			class="flex flex-1 p-2 w-full gap-20 justify-between items-center text-neutral-100 font-bold text-xl"
+		>
+			<p hidden class="flex-1 capitalize text-rps-neutral-500"></p>
+			<p hidden class="flex-0"></p>
+			<h3 hidden id="gameTimer" class="text-rps-yellow-300 w-24"></h3>
+			<p hidden class="flex-0 "></p>
+			<p hidden class="flex-1 text-right text-rps-neutral-500"></p>
+		</div>
+		<div id="gameScreen" class="flex flex-col items-center bg-neutral-900">
+			<div class="flex w-full items-center justify-center gap-3 animate-pulse">
+				<svg
+					style="animation-duration: 3s;"
+					class="size-8 animate-spin text-white"
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+				>
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path
+						class="opacity-75"
+						fill="currentColor"
+						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+					></path>
+				</svg>
+				<div
+					class="flex items-center"
+					x-data="{ showOne: false, showTwo: false, showThree: false }"
+					x-init="setTimeout(() => showOne = true, 0);
+					setTimeout(() => showTwo = true, 200);
+					setTimeout(() => showThree = true, 300)"
+				>
+					<span class="text-2xl">Waiting For Players</span>
+					<div x-show="showOne" class="ml-1 w-2 h-4 rounded-full animate-bounce">.</div>
+					<div x-transition x-show="showTwo" class="w-2 h-4 rounded-full animate-bounce">.</div>
+					<div x-transition x-show="showThree" class="w-2 h-4 rounded-full animate-bounce">.</div>
+				</div>
 			</div>
-			<input type="hidden" name="choice" x-model="choice" />
-			<input type="hidden" name="playerId" value="player1" />
-			<button type="submit" :disabled="choice == ''"
-				class="rounded-sm bg-rps-blue-500 shadow-md px-6 py-4 text-sm leading-5 font-semibold text-rps-white-100 hover:bg-rps-blue-400 transition cursor-pointer disabled:bg-neutral-700 disabled:cursor-not-allowed">
-				Confirm
-			</button>
-		</form>
+		</div>
+	</section>
+}
+
+templ SelectionCard(text string) {
+	<button
+		type="button"
+		@click={ "choice = (choice == '" + text + "') ? '' : '" + text + "'" }
+		:class={ "(choice=='" +
+	text + "') ? 'shadow-rps-yellow-300/50 border-rps-yellow-300' : ''" }
+		class={ `flex flex-col justify-between p-6
+	w-50 bg-neutral-950 font-bold border-2 rounded-sm shadow-md transition cursor-pointer hover:shadow-neutral-300/50
+	hover:border-neutral-300` + getBorderColorClass(text) }
+	>
+		<div class="flex flex-col text-3xl uppercase gap-3 items-center justify-center ">
+			{ children... }
+		</div>
+	</button>
+}
+
+templ DisplayCard(text string) {
+	<div
+		class="flex flex-col justify-between p-6 w-50 bg-neutral-950 font-bold border-2 rounded-sm shadow-md transition
+	border-rps-orange-500 border-rps-blue-500 border-rps-green-500"
+	>
+		<div class="flex flex-col text-3xl uppercase gap-3 items-center justify-center">
+			{ children... }
+		</div>
 	</div>
-</section>
+}
+
+templ RockText() {
+	<span class="text-rps-orange-500">Rock</span>
+}
+
+templ PaperText() {
+	<span class="text-rps-blue-500">Paper</span>
+}
+
+templ ScissorsText() {
+	<span class="text-rps-green-500">Scissors</span>
+}
+
+templ RockImage() {
+	<img src="/img/rock.webp" class="m-auto w-28 h-28"/>
+}
+
+templ PaperImage() {
+	<img src="/img/paper2.png" class="m-auto w-28 h-28"/>
+}
+
+templ ScissorsImage() {
+	<img src="/img/scissors.png" class="m-auto w-28 h-28"/>
+}
+
+templ LessThanIcon() {
+	<svg fill="text-rps-white-100" width="80px" height="80px" viewBox="-64 0 512 512" xmlns="http://www.w3.org/2000/svg">
+		<path
+			d="M365.46 357.74L147.04 255.89l218.47-101.88c16.02-7.47 22.95-26.51 15.48-42.53l-13.52-29C360 66.46 340.96 59.53 324.94 67L18.48 209.91a32.014 32.014 0 0 0-18.48 29v34.24c0 12.44 7.21 23.75 18.48 29l306.31 142.83c16.06 7.49 35.15.54 42.64-15.52l13.56-29.08c7.49-16.06.54-35.15-15.53-42.64z"
+		></path>
+	</svg>
+}
+
+templ GreaterThanIcon() {
+	<svg fill="text-rps-white-100" width="80px" height="80px" viewBox="-64 0 512 512" xmlns="http://www.w3.org/2000/svg">
+		<path
+			d="M365.52 209.85L59.22 67.01c-16.06-7.49-35.15-.54-42.64 15.52L3.01 111.61c-7.49 16.06-.54 35.15 15.52 42.64L236.96 256.1 18.49 357.99C2.47 365.46-4.46 384.5 3.01 400.52l13.52 29C24 445.54 43.04 452.47 59.06 445l306.47-142.91a32.003 32.003 0 0 0 18.48-29v-34.23c-.01-12.45-7.21-23.76-18.49-29.01z"
+		></path>
+	</svg>
+}
+
+templ EqualIcon() {
+	<svg fill="text-rps-white-100" width="80px" height="80px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+		<path
+			d="M20.75 7a1.25 1.25 0 1 1 0 2.5H3.25a1.25 1.25 0 0 1 0-2.5h17.5zM20.75 15.5a1.25 1.25 0 1 1 0 2.5H3.25a1.25 1.25 0 1 1 0-2.5h17.5z"
+		></path>
+	</svg>
 }

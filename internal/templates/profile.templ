@@ -5,181 +5,208 @@ import "strconv"
 import "fmt"
 
 func itos(i int) string {
-return strconv.Itoa(i)
+	return strconv.Itoa(i)
 }
 
 templ Profile(user *models.User) {
-<section class="flex flex-col w-screen items-center mt-20 gap-4">
-	if user != nil {
-	<h1 class="mb-3 text-3xl font-bold uppercase">{ user.Username }</h1>
-	<div hx-get={ fmt.Sprintf("/profile/%v/stats", user.ID) } hx-trigger="load, every 10s" hx-target="#user-stats"
-		hx-swap="outerHTML">
-		@UserCard(user.Stats)
-	</div>
-	@GameMenu()
-	<div hx-get={ fmt.Sprintf("/profile/%v/history", user.ID) } hx-trigger="load, every 10s" hx-target="#match-history"
-		hx-swap="outerHTML">
-		@MatchHistory([]models.GameData{}, "")
-	</div>
-	}
-</section>
-
+	<section class="flex flex-col w-screen items-center mt-20 gap-4">
+		if user != nil {
+			<h1 class="mb-3 text-3xl font-bold uppercase">{ user.Username }</h1>
+			<div
+				hx-get={ fmt.Sprintf("/profile/%v/stats", user.ID) }
+				hx-trigger="load, every 10s"
+				hx-target="#user-stats"
+				hx-swap="outerHTML"
+			>
+				@UserCard(user.Stats)
+			</div>
+			@GameMenu()
+			<div
+				hx-get={ fmt.Sprintf("/profile/%v/history", user.ID) }
+				hx-trigger="load, every 10s"
+				hx-target="#match-history"
+				hx-swap="outerHTML"
+			>
+				@MatchHistory([]models.GameData{}, "")
+			</div>
+		}
+	</section>
 }
 
-//<script>
-//	document.addEventListener("htmx:configRequest", function (event) {
-//		let token = document.cookie.split('; ').find(row => row.startsWith('auth_token='));
-//		if (token) {
-//			token = token.split('=')[1];
-//			event.detail.headers['Authorization'] = "Bearer " + token;
-//		}
-//	});
-//</script>
-
 templ StatValue(value int) {
-<h2 class="text-5xl text-white font-semibold text-center">
-	{ itos(value) }
-</h2>
+	<h2 class="text-5xl text-white font-semibold text-center">
+		{ itos(value) }
+	</h2>
 }
 
 templ StatLabel(label string, color string) {
-<p class={ fmt.Sprintf("mb-2 text-xl text-center font-bold %v", color) }>{ label }</p>
+	<p class={ fmt.Sprintf("mb-2 text-xl text-center font-bold %v", color) }>{ label }</p>
 }
 
-//<div class="w-full py-4">
-	// <div class="px-12">
-		// @StatValue(s.Rating)
-		// @StatLabel("Rating", "text-rps-yellow-300")
-		// </div>
-	//</div>
-
 templ UserCard(s models.UserStats) {
-<div id="user-stats" class="flex flex-wrap mb-5 border-1 border-rps-neutral-200 rounded-md bg-neutral-900">
-	<div class="w-full md:w-1/2 lg:w-1/3 py-3">
-		<div class="lg:border-r border-rps-neutral-300 px-12">
-			@StatValue(s.Games)
-			@StatLabel("Games", "text-rps-blue-500")
+	<div id="user-stats" class="flex flex-wrap mb-5 border-1 border-rps-neutral-200 rounded-md bg-neutral-900">
+		<div class="w-full sm:w-1/3 py-3">
+			<div class="sm:border-r border-rps-neutral-300 px-12">
+				@StatValue(s.Games)
+				@StatLabel("Games", "text-rps-blue-500")
+			</div>
+		</div>
+		<div class="w-full sm:w-1/3 py-3">
+			<div class="sm:border-r border-rps-neutral-300 px-12">
+				@StatValue(s.Wins)
+				@StatLabel("Wins", "text-rps-green-400")
+			</div>
+		</div>
+		<div class="w-full sm:w-1/3 py-3">
+			<div class="px-12">
+				@StatValue(s.Losses)
+				@StatLabel("Losses", "text-rps-red-500")
+			</div>
 		</div>
 	</div>
-	<div class="w-full md:w-1/2 lg:w-1/3 py-3">
-		<div class="md:border-r border-rps-neutral-300 px-12">
-			@StatValue(s.Wins)
-			@StatLabel("Wins", "text-rps-green-400")
-		</div>
-	</div>
-	<div class="w-full md:w-1/2 lg:w-1/3 py-3">
-		<div class="px-12">
-			@StatValue(s.Losses)
-			@StatLabel("Losses", "text-rps-red-500")
-		</div>
-	</div>
-</div>
 }
 
 templ DotTie() {
-<svg class="w-4 fill-current text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-	<path fill-rule="evenodd" stroke="bg-neutral-950"
-		d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
-</svg>
+	<svg class="w-4 fill-current text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+		<path
+			fill-rule="evenodd"
+			stroke="bg-neutral-950"
+			d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
+			clip-rule="evenodd"
+		></path>
+	</svg>
 }
 
 templ DotWin() {
-<svg class="w-4 fill-current text-green-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-	<path fill-rule="evenodd" stroke="bg-neutral-950"
-		d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-		clip-rule="evenodd"></path>
-</svg>
+	<svg class="w-4 fill-current text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+		<path
+			fill-rule="evenodd"
+			stroke="bg-neutral-950"
+			d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+			clip-rule="evenodd"
+		></path>
+	</svg>
 }
 
 templ DotLoss() {
-<svg class="w-4 fill-current text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-	<path fill-rule="evenodd" stroke="bg-neutral-950"
-		d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-		clip-rule="evenodd"></path>
-</svg>
+	<svg class="w-4 fill-current text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+		<path
+			fill-rule="evenodd"
+			stroke="bg-neutral-950"
+			d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+			clip-rule="evenodd"
+		></path>
+	</svg>
 }
 
 templ RoundIndicator(winner, pid string) {
-if winner == pid {
-@DotWin()
-} else {
-if winner == "draw" {
-@DotTie()
-} else {
-@DotLoss()
-}
-}
+	if winner == pid {
+		@DotWin()
+	} else {
+		if winner == "draw" {
+			@DotTie()
+		} else {
+			@DotLoss()
+		}
+	}
 }
 
 templ GameTH(label string) {
-<th scope="col" class="px-6 py-3 text-left tracking-wider">
-	{ label }
-</th>
+	<th scope="col" class="px-6 py-3 text-center tracking-wider">
+		{ label }
+	</th>
 }
 
 templ GameTR(game models.GameData, n int, pid string) {
-{{color := "bg-rps-neutral-950"
+	{{
+color := "bg-rps-neutral-950"
 if n%2 == 0 {
-color = "bg-rps-neutral-900"
+	color = "bg-rps-neutral-900"
 }
+opponent := ""
+if game.Settings.PlayerOne == pid {
+	opponent = game.Result.PlayerTwoName
+} else {
+	opponent = game.Result.PlayerOneName
+}
+if opponent == "ai" {
+	opponent = "AI"
+}
+
+winner := ""
+winnerColor := "text-rps-red-500"
+if game.Result.Winner == pid {
+	winner = "win"
+winnerColor = "text-green-500"
+} else {
+	winner = "loss"
+}
+
+mode := game.Settings.Type
+if mode == "ai" {
+	mode = "AI"
+} else if mode == "pvp" {
+	mode = "PvP"
+}
+	if len(game.GameStates) > 6 {
+		game.GameStates = game.GameStates[len(game.GameStates)-6:]
+	}
 }}
-<tr class={ color }>
-	<td class="text-center">
-		{ game.Settings.Type }
-	</td>
-	<td class="flex px-4 py-4 whitespace-nowrap">
-		{ game.Settings.PlayerTwo }
-	</td>
-	<td class="px-4 py-4 text-rps-yellow-300 text-center whitespace-nowrap">
-		{ itos(game.Settings.BestOf) }
-	</td>
-	<td class="px-4 py-4 text-rps-green-500 text-center whitespace-nowrap">
-		{ itos(game.Result.Score.PlayerOne) }
-	</td>
-	<td class="px-4 py-4 text-rps-red-500 text-center whitespace-nowrap">
-		{ itos(game.Result.Score.PlayerTwo) }
-	</td>
-	<td class="flex px-4 py-4 text-center whitespace-nowrap">
-		for _, round := range game.GameStates {
-		@RoundIndicator(round.Winner, pid)
-		}
-	</td>
-</tr>
+	<tr class={ color }>
+		<td class="text-center">
+			{ game.Settings.Type }
+		</td>
+		<td class="px-4 py-4 text-rps-yellow-300 text-center whitespace-nowrap">
+			{ itos(game.Settings.BestOf) }
+		</td>
+		<td class="px-4 py-4 whitespace-nowrap text-center justify-center">
+			{ opponent }
+		</td>
+		<td class="flex px-4 py-4 text-center whitespace-nowrap justify-center">
+			for i, round := range game.GameStates {
+				if i < 6  {
+				@RoundIndicator(round.Winner, pid)
+				}
+			}
+		</td>
+		<td class={"px-4 py-4 text-center font-semibold uppercase whitespace-nowrap " +winnerColor}>
+			{ winner }
+		</td>
+	</tr>
 }
 
 templ MatchHistory(games []models.GameData, pid string) {
-<div id="match-history" class="flex flex-col items-center justify-center w-screen mt-2">
-	<h1 class="text-lg text-rps-neutral-100 font-medium">Match History</h1>
-	<div class="flex flex-col mt-2">
-		<div class="overflow-x-auto">
-			<div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-				<div class="shadow overflow-hidden rounded-md">
-					<table class="min-w-full text-sm text-rps-white-200">
-						<thead class="bg-neutral-900 text-sm uppercase font-medium">
-							<tr>
-								@GameTH("Mode")
-								@GameTH("Opponent")
-								@GameTH("Best of")
-								@GameTH("Win")
-								@GameTH("Loss")
-								@GameTH("Rounds")
-							</tr>
-						</thead>
-						<tbody class="font-semibold">
-							if len(games) == 0 {
-							<tr>
-								<td colspan="6" class="text-center py-4">No games found</td>
-							</tr>
-							} else {
-							for i, game := range games {
-							@GameTR(game, i, pid)
-							}
-							}
-						</tbody>
-					</table>
+	<div id="match-history" class="flex flex-col items-center justify-center w-screen mt-2">
+		<h1 class="text-lg text-rps-neutral-100 font-medium">Match History</h1>
+		<div class="flex flex-col mt-1">
+			<div class="overflow-x-auto">
+				<div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+					<div class="shadow overflow-hidden rounded-md min-w-2xl">
+						<table class="min-w-full text-sm text-rps-white-200">
+							<thead class="bg-neutral-900 text-sm uppercase font-medium">
+								<tr>
+									@GameTH("Mode")
+									@GameTH("Best of")
+									@GameTH("Opponent")
+									@GameTH("Rounds")
+									@GameTH("Win")
+								</tr>
+							</thead>
+							<tbody class="font-semibold">
+								if len(games) == 0 {
+									<tr>
+										<td colspan="5" class="text-center py-4">No games found</td>
+									</tr>
+								} else {
+									for i, game := range games {
+										@GameTR(game, i, pid)
+									}
+								}
+							</tbody>
+						</table>
+					</div>
 				</div>
 			</div>
 		</div>
 	</div>
-</div>
 }

@@ -42,5 +42,5 @@
 
 [proxy]
   enabled = true
-  proxy_port = 9001
+  proxy_port = 3000
   app_port = 9000

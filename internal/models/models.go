@@ -26,10 +26,13 @@ type Score struct {
 	PlayerTwo int `json:"playerTwo"`
 	Draw      int `json:"draw"`
 }
+
 type GameResult struct {
-	NumRounds int    `json:"numRounds"`
-	Winner    string `json:"winner"`
-	Score     Score  `json:"score"`
+	NumRounds     int    `json:"numRounds"`
+	Winner        string `json:"winner"`
+	PlayerOneName string `json:"playerOneName"`
+	PlayerTwoName string `json:"playerTwoName"`
+	Score         Score  `json:"score"`
 }
 
 type GameState struct {
@@ -45,6 +48,6 @@ type GameData struct {
 	StartTime  string       `json:"startTime,omitempty"`
 	EndTime    string       `json:"endTime,omitempty"`
 	Settings   GameSettings `json:"settings"`
-	Result     GameResult   `json:"result"`
+	Result     GameResult   `json:"result,omitempty"`
 	GameStates []GameState  `json:"gameStates"`
 }

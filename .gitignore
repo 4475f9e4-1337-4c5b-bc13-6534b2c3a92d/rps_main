@@ -21,6 +21,7 @@ __pycache__
 
 internal/templates/*.go
 static/css/style.css
+static/img
 
 # Go workspace file
 go.work

@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"rps_main/internal/game"
 	"rps_main/internal/handler"
 
 	"github.com/joho/godotenv"
@@ -40,35 +39,17 @@ func main() {
 	e.GET("/register", handler.HandleRegister)
 	e.GET("/logout", handler.HandleLogout)
 
-	e.GET("/profile", handler.HandleProfile, handler.CookieAuthMiddleware, handler.EchoJWTMiddleware(secret))
+	e.GET("/profile", handler.HandleProfile, handler.CookieAuthMiddleware, handler.EchoJWTMiddleware(secret, "/"))
+	e.GET("/profile/menu", handler.HandleProfileMenu)
 	e.GET("/profile/:id/history", handler.HandleProfileHistory)
 	e.GET("/profile/:id/stats", handler.HandleProfileStats)
-
-	// Forward requests to microservices
 
 	auth := e.Group("/auth")
 	auth.POST("/login", handler.ForwardAuthRequest)
 	auth.POST("/register", handler.ForwardAuthRequest)
 
-	// mmUrl, err := url.Parse("http://localhost:9100")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// mmTargets := []*middleware.ProxyTarget{{URL: mmUrl}}
-	// e.GET("/mm/cancel", handler.CancelMatchmaking)
-	// mm := e.Group("/mm")
-	// mm.POST("/join", handler.ForwardMatchmakingRequest)
-	// mm.POST("/leave", handler.ForwardMatchmakingRequest)
-	// mm.Use(middleware.Proxy(middleware.NewRoundRobinBalancer(mmTargets)))
-
-	e.POST("/play", handler.HandlePlay)
-	e.GET("/game/:id", func(c echo.Context) error {
-		gameId := c.Param("id")
-		if gs, ok := game.GetServer(gameId); ok {
-			return gs.Connect(c)
-		}
-		return c.Redirect(301, "/")
-	})
+	e.POST("/play", handler.HandlePlay, handler.CookieAuthMiddleware, handler.EchoJWTMiddleware(secret, "/profile"))
+	e.GET("/game/:id", handler.HandleGame, handler.CookieAuthMiddleware, handler.EchoJWTMiddleware(secret, "/profile"))
 
 	e.Logger.Fatal(e.Start(":9000"))
 }
